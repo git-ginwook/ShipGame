@@ -44,8 +44,8 @@ class ShipGame:
         - current_state = 'UNFINISHED'
         """
         self._board = {
-            "R": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
-            "C": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+            "Row": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+            "Col": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
         }
         # initialize battleship list
         self._board_first = []
@@ -81,39 +81,15 @@ class ShipGame:
         row = coord_str[0]
         col = coord_str[1:]
 
-        # check whether the head of battleship (coord_str) is out of the board
-        if row not in self._board["R"]:
+        # check whether the head of battleship is out of bound
+        if row not in self._board["Row"] or col not in self._board["Col"]:
             return False
 
-        if col not in self._board["C"]:
+        # check whether the tail of battleship is out of bound
+        if orient_str == "C" and self._board["Row"].index(row) + ship_length > 10:
             return False
-
-
-
-
-        # tail:
-        # if index position of index[0] in "R_li" plus ship_length > 9:
-        # return False (out of grid)
-        # else:
-        # move on to the next line
-
-        return True
-
-        # [head and tail test] - column
-        # head:
-        # if index[0] is not in "C_li" of board:
-        # return False (out of grid)
-
-            # else: (if index[0] is in "C_li" of board)
-            # move on to the next line
-
-            # tail:
-            # if index position of index[0] in "C_li" plus ship_length > 9:
-            # return False (out of grid)
-            # else:
-            # move on to the next line
-
-
+        if orient_str == "R" and self._board["Col"].index(col) + ship_length > 10:
+            return False
 
         # [overlap test]
         # generate a temp_ship list from head to tail
@@ -125,6 +101,8 @@ class ShipGame:
         # append temp_ship as a new battleship
 
         # use len to count remaining battleships
+
+        return True
 
 
 
@@ -227,12 +205,18 @@ def main():
     print("index[1:] not in 'C': ", sg.place_ship("first", 2, "A11", "C"))          # False
 
     print("coord_str in: ", sg.place_ship("first", 2, "A1", "R"))                   # True
-    print("coord_str in: ", sg.place_ship("first", 2, "A10", "R"))                  # True
-    print("coord_str in: ", sg.place_ship("first", 2, "J1", "R"))                   # True
-    print("coord_str in: ", sg.place_ship("first", 2, "J10", "R"))                  # True
+    print("coord_str in: ", sg.place_ship("first", 2, "A9", "C"))                   # True
+    print("coord_str in: ", sg.place_ship("first", 2, "I1", "R"))                   # True
+    print("coord_str in: ", sg.place_ship("first", 2, "I9", "C"))                   # True
+    # tail test
+    print("exceed row: ", sg.place_ship("first", 11, "A1", "C"))                    # False
+    print("exceed column: ", sg.place_ship("first", 11, "A1", "R"))                 # false
 
+    print("in row: ", sg.place_ship("first", 10, "A1", "R"))                        # True
+    print("in column: ", sg.place_ship("first", 10, "A1", "C"))                     # True
 
-    print("index[1:] in 'C': ", sg.place_ship("first", 2, "A10", "C"))
+    print("exceed row: ", sg.place_ship("first", 6, "F6", "C"))                     # False
+    print("exceed column: ", sg.place_ship("first", 6, "F6", "R"))                  # False
 
     # tail test
 
