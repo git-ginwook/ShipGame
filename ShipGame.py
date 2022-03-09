@@ -1,6 +1,6 @@
 # Author: GinWook Lee
 # GitHub username: git-ginwook
-# Date: 3/2/2022
+# Date: 3/9/2022
 # Description:
 
 # Game objective:
@@ -34,14 +34,13 @@ class ShipGame:
     def __init__(self):
         """
         init method takes no parameter. All data members are private.
-        Initialize for each player: (* means either 'first' or 'second')
-        - board: a clean grid
+
+        Initialize private data members:
+        - board: a clean 10x10 grid (rows: A~J x column: 1~10)
         - battleships: battleship records
-        - ships_remaining_*: number of live battleships
-        Set default values:
-        - grid_range = 10x10 (rows: A~J x column: 1~10)
-        - current_turn = 'first'
-        - current_state = 'UNFINISHED'
+        - num_ships: number of live battleships
+        - current_state: 'UNFINISHED'
+        - current_turn: 'first'
         """
         # 10x10 battle board
         self._board = {"Row": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
@@ -51,14 +50,15 @@ class ShipGame:
         self._battleships = {"first": [], "second": []}
         self._num_ships = {"first": 0, "second": 0}
 
+
     def place_ship(self, player_str, ship_length, coord_str, orient_str):
         """
         add a ship with 'ship_length' for 'player_str' at 'coord_str' in 'orient_str'
 
         First, each passed parameter needs to be validated:
         - player_str: must be either 'first' or 'second'
-        - ship_length: 2 <= length <= 10
         - orient_str: must be either 'R' or 'C'
+        - ship_length: 2 <= length <= 10
         - coord_str: no part of the ship falls outside of the grid
         If any of these conditions are not met, then return FALSE.
 
@@ -95,7 +95,7 @@ class ShipGame:
         if orient_str == "R" and self._board["Col"].index(col) + ship_length > 10:
             return False
 
-        # build new ship one part at a time -> recursive?
+        # build new ship one part at a time
         temp_ship = []
         candidate = None
 
@@ -113,6 +113,7 @@ class ShipGame:
                 if candidate in self._battleships[player_str][num]:
                     return False
 
+            # lining up ship parts into a new ship
             temp_ship.append(candidate)
 
         # append new ship to battleship list
@@ -120,7 +121,6 @@ class ShipGame:
         # update number of ships
         self._num_ships[player_str] = self.get_num_ships_remaining(player_str)
         return True
-
 
     def get_current_state(self):
         """
@@ -200,29 +200,6 @@ def main():
     """ test cases that run only within this ShipGame.py module """
     # create ShipGame object
     sg = ShipGame()
-
-    # check initial setting
-    # print("initial battleship(first): ", sg.get_num_ships_remaining("first"))
-    # print("initial battleship(second): ", sg.get_num_ships_remaining("second"))
-
-    # [place_ship() tests]
-    # tail test
-    print("exceed row: ", sg.place_ship("first", 11, "A1", "C"))                    # False
-    print("exceed column: ", sg.place_ship("first", 11, "A1", "R"))                 # false
-
-    print("in column: ", sg.place_ship("first", 10, "A1", "C"))                     # True
-    print("in row: ", sg.place_ship("first", 9, "C2", "R"))                        # True
-
-    print("exceed row: ", sg.place_ship("first", 6, "F6", "C"))                     # False
-    print("exceed column: ", sg.place_ship("first", 6, "F6", "R"))                  # False
-
-
-    # sg.place_ship("second", 1, "A1", "C")
-    # sg.place_ship("first", 2, "B1", "R")
-    # sg.place_ship("second", 2, "A2", "C")
-
-
-
 
 
 if __name__ == '__main__':
