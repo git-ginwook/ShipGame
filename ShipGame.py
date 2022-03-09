@@ -36,20 +36,20 @@ class ShipGame:
         init method takes no parameter. All data members are private.
         Initialize for each player: (* means either 'first' or 'second')
         - board: a clean grid
-        - ships_coord_*: battleship records
+        - battleships: battleship records
         - ships_remaining_*: number of live battleships
         Set default values:
         - grid_range = 10x10 (rows: A~J x column: 1~10)
         - current_turn = 'first'
         - current_state = 'UNFINISHED'
         """
-        self._board = {
-            "Row": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
-            "Col": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-        }
+        # 10x10 battle board
+        self._board = {"Row": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+                       "Col": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]}
+
         # initialize battleship list
-        self._board_first = []
-        self._board_second = []
+        self._battleships = {"first": [], "second": []}
+        self._num_ships = {"first": 0, "second": 0}
 
     def place_ship(self, player_str, ship_length, coord_str, orient_str):
         """
@@ -65,19 +65,23 @@ class ShipGame:
         If all of these conditions are met, then build a battleship by:
         1) identify whose battleship it is based on 'player_str'
         2) set the head of the ship based on 'coord_str'
-        3) check orientation of the ship based on 'orient_str' ('R'=right, 'C'=column)
+        3) check orientation of the ship based on 'orient_str' ('R'=right, 'C'=down)
         4) append remaining part(s) starting from 'coord_str' in 'orient_str' direction
         5) label all of covered coordinates as one battleship
 
         Then, return True after:
-        incrementing the remaining number of ships ('ships_remaining_*') for 'player_str'
-        and appending the new battleship to 'ships_coord_*' for 'player_str'.
+        incrementing the remaining number of ships ('num_ships') for 'player_str'
+        and appending the new battleship to 'battleships' for 'player_str'.
         """
-        # check ship_length
-        if ship_length < 2:
+        # parameter validation
+        if player_str != "first" and player_str != "second":
+            return False
+        if orient_str != "R" and orient_str != "C":
+            return False
+        if ship_length < 2 or ship_length > 10:
             return False
 
-        # parse coord_str into index[0] and index[1:]
+        # parse coord_str into row and col
         row = coord_str[0]
         col = coord_str[1:]
 
@@ -91,19 +95,31 @@ class ShipGame:
         if orient_str == "R" and self._board["Col"].index(col) + ship_length > 10:
             return False
 
-        # [overlap test]
-        # generate a temp_ship list from head to tail
-        # use ship_length as a count for a while loop
-        # for part in temp_ship:
-        # if part in ships_coord_*:
-        # return False (overlap)
+        # build new ship one part at a time -> recursive?
+        temp_ship = []
+        candidate = None
 
-        # append temp_ship as a new battleship
+        for part in range(ship_length):
+            if orient_str == "C":
+                row_index = self._board["Row"].index(row) + part
+                candidate = self._board["Row"][row_index] + col
 
-        # use len to count remaining battleships
+            if orient_str == "R":
+                col_index = self._board["Col"].index(col) + part
+                candidate = row + self._board["Col"][col_index]
 
+            # check for overlap
+            for num in range(self._num_ships[player_str]):
+                if candidate in self._battleships[player_str][num]:
+                    return False
+
+            temp_ship.append(candidate)
+
+        # append new ship to battleship list
+        self._battleships[player_str].append(temp_ship)
+        # update number of ships
+        self._num_ships[player_str] = self.get_num_ships_remaining(player_str)
         return True
-
 
 
     def get_current_state(self):
@@ -161,12 +177,7 @@ class ShipGame:
         Return number of ships remaining for 'player_str'(either 'first' or 'second').
         """
         # use len to count remaining battleships
-        if player_str == "first":
-            self._ships_remaining_first = len(self._board_first)
-            return self._ships_remaining_first
-        if player_str == "second":
-            self._ships_remaining_second = len(self._board_second)
-            return self._ships_remaining_second
+        return len(self._battleships[player_str])
 
     def set_num_ships_remaining(self, player_str, coord_str):
         """
@@ -183,7 +194,6 @@ class ShipGame:
         If the number of remaining ships is not zero, then return nothing.
         If the number is zero, call set_current_state() to end the game with a winner.
         """
-        pass
 
 
 def main():
@@ -192,33 +202,19 @@ def main():
     sg = ShipGame()
 
     # check initial setting
-    print("initial battleship(first): ", sg.get_num_ships_remaining("first"))
-    print("initial battleship(second): ", sg.get_num_ships_remaining("second"))
+    # print("initial battleship(first): ", sg.get_num_ships_remaining("first"))
+    # print("initial battleship(second): ", sg.get_num_ships_remaining("second"))
 
     # [place_ship() tests]
-    # ship_length test
-    print("length less than 2: ", sg.place_ship("first", 1, "X1", "R"))
-    # head test
-    print("index[0] not in 'R': ", sg.place_ship("first", 2, "a1", "R"))            # False
-    print("index[0] not in 'R': ", sg.place_ship("first", 2, "X1", "R"))            # False
-    print("index[1:] not in 'C': ", sg.place_ship("first", 2, "A0", "C"))           # False
-    print("index[1:] not in 'C': ", sg.place_ship("first", 2, "A11", "C"))          # False
-
-    print("coord_str in: ", sg.place_ship("first", 2, "A1", "R"))                   # True
-    print("coord_str in: ", sg.place_ship("first", 2, "A9", "C"))                   # True
-    print("coord_str in: ", sg.place_ship("first", 2, "I1", "R"))                   # True
-    print("coord_str in: ", sg.place_ship("first", 2, "I9", "C"))                   # True
     # tail test
     print("exceed row: ", sg.place_ship("first", 11, "A1", "C"))                    # False
     print("exceed column: ", sg.place_ship("first", 11, "A1", "R"))                 # false
 
-    print("in row: ", sg.place_ship("first", 10, "A1", "R"))                        # True
     print("in column: ", sg.place_ship("first", 10, "A1", "C"))                     # True
+    print("in row: ", sg.place_ship("first", 9, "C2", "R"))                        # True
 
     print("exceed row: ", sg.place_ship("first", 6, "F6", "C"))                     # False
     print("exceed column: ", sg.place_ship("first", 6, "F6", "R"))                  # False
-
-    # tail test
 
 
     # sg.place_ship("second", 1, "A1", "C")
