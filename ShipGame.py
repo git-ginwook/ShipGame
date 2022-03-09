@@ -2,6 +2,13 @@
 # GitHub username: git-ginwook
 # Date: 3/9/2022
 # Description:
+#   This program runs ShipGame emulating the game Battleship.
+#   There are two players playing against each other.
+#   Each player has their own battlefield, 10x10 grid with rows: A~J and columns: 1~10.
+#   Before the battle, each player prepare for the battle by building their battleships.
+#   Placement of each battleship is kept hidden.
+#   Once two battlefields are set, the first player fires the first torpedo.
+#   Each player takes turn firing at each other until one player's battleships are all destroyed.
 
 # Game objective:
 #   Two players take turn firing torpedo to sink all of the opponent's battleships.
@@ -127,21 +134,16 @@ class ShipGame:
 
     def get_current_state(self):
         """
-        fetch and return the current_state value
+        fetch and return current_state
         """
         return self._current_state
 
     def set_current_state(self, player_str):
         """
-        function as a gatekeeper whether to continue the game.
+        this function is called only if there is a winner (and a loser).
 
-        Three return options: 1) 'FIRST_WON', 'SECOND_WON', or 'UNFINISHED'.
-        Return options are based on get_num_ships_remaining() method.
-
-        If all battleships got destroyed for either one of 'first' or 'second' player,
-        then a winner is declared and ShipGame stops, ('FIRST_WON' or 'SECOND_WON').
-
-        If neither has zero ships remaining, then the game proceeds as 'UNFINISHED'.
+        Two output options: 1) 'FIRST_WON' or 2) 'SECOND_WON'.
+        The passed parameter, player_str, indicates the loser.
         """
         # player_str is the loser, so the other player is the winner
         if player_str == "first":
@@ -151,13 +153,13 @@ class ShipGame:
 
     def get_current_turn(self):
         """
-        fetch and return current_turn value
+        fetch and return current_turn
         """
         return self._current_turn
 
     def set_current_turn(self, player_str):
         """
-        switch current_turn to the other player after each fire_torpedo() gets called
+        switch current_turn to the other player after each valid fire_torpedo()
         """
         if player_str == "first":
             self._current_turn = "second"
@@ -173,13 +175,15 @@ class ShipGame:
         1) check whether the current_state is 'UNFINISHED'.
         2) check whether the current_turn matches with player_str.
 
-        If 1 or 2, or both is FALSE, then nothing happens and return False.
-        If 1 and 2 are both TRUE, check the attached coordinate on the opponent's grid.
-        1) 'miss'
-        2) 'hit'
+        If either one of checks is FALSE, then nothing happens and return False.
+        If 1 and 2 are both TRUE, check impact of the fire on the opponent's grid.
+        1) 'out of grid'
+        2) 'miss'
+        3) 'hit'
 
         regardless of 'hit' or 'miss', switch current_turn.
 
+        If it's 'out of grid', just return True (turn wasted).
         If it's a 'hit', update remaining ships and current state, then return True.
         If it's a 'miss', just return True.
         """
@@ -197,17 +201,16 @@ class ShipGame:
         # [switch turn]
         self.set_current_turn(player_str)
 
-        # [out of grid]
+        # [torpedo impact]
         # parse coord_str into row and col
         row = coord_str[0]
         col = coord_str[1:]
 
         # check whether the torpedo is out of grid
         if row not in self._board["Row"] or col not in self._board["Col"]:
-            # wasted shot
+            # wasted shot - no further check is needed
             return True
 
-        # [impact]
         # check for hit
         for ship in self._battleships[self._current_turn]:
             # if there is a hit, call set_num_ships_remaining()
@@ -216,7 +219,7 @@ class ShipGame:
                 part_num = self._battleships[self._current_turn][ship_num].index(coord_str)
                 self.set_num_ships_remaining(self._current_turn, ship_num, part_num)
 
-        # return True, regardless of hit or miss
+        # return True for both 'hit' and 'miss'
         return True
 
     def get_num_ships_remaining(self, player_str):
@@ -227,15 +230,15 @@ class ShipGame:
 
     def set_num_ships_remaining(self, player_str, ship_num, part_num):
         """
-        update number of ships remaining after reflecting the torpedo 'hit'.
+        update number of ships remaining if there is a torpedo 'hit'.
 
         Function is called only if fire_torpedo() returns a 'hit'.
 
-        The attacked player's ship coordinates are updated with the struck coordinate.
-        Then, check other portion(s) of the struck ship.
+        Ship coordinates of the player under attack are revised - delete the hit part.
+        Then, check other part(s) of the ship that has been striken.
 
-        If there is at least one portion of the ship not 'hit', then return nothing.
-        If all portions have been 'hit', then deduct the number of ships remaining.
+        If there is at least one part of the ship not 'hit', then return nothing.
+        If all parts of the ship have been 'hit', then deduct the number of ships remaining.
 
         If the number of remaining ships is not zero, then return nothing.
         If the number is zero, call set_current_state() to end the game with a winner.
@@ -257,7 +260,7 @@ class ShipGame:
                 # self.set_current_state(player_str) <- loser
                 self.set_current_state(player_str)
 
-        # no change to num_ships_remaining
+        # Otherwise, no change to num_ships_remaining
 
 
 def main():
@@ -272,6 +275,7 @@ def main():
     sg.place_ship('second', 3, 'H2', 'C')
     sg.place_ship('second', 2, 'A1', 'C')
 
+    # play ShipGame
     sg.fire_torpedo('second', 'A10')            # False
     sg.fire_torpedo('first', 'D2')              # miss
     sg.fire_torpedo('first', 'A2')              # False
@@ -281,12 +285,16 @@ def main():
     sg.fire_torpedo('first', 'B1')              # hit
     sg.fire_torpedo('second', 'I8')             # hit and sink 2:2
     sg.fire_torpedo('first', 'A1')              # hit and sink 2:1
+    print(sg.get_current_turn())
+    print(sg.get_current_state())
     sg.fire_torpedo('second', 'I8')             # repeat and wasted
     sg.fire_torpedo('first', 'H2')              # hit
     sg.fire_torpedo('second', 'B7')             # miss
     sg.fire_torpedo('first', 'I2')              # hit
     sg.fire_torpedo('second', 'H4')             # hit
+    print(sg.get_current_turn())
     sg.fire_torpedo('first', 'J2')              # hit and sink 2:0
+    print(sg.get_current_state())
     sg.fire_torpedo('second', 'E2')             # game over, FIRST_WON
 
 
