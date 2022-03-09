@@ -42,7 +42,7 @@ class ShipGame:
         - current_state: 'UNFINISHED'
         - current_turn: 'first'
         """
-        # 10x10 battle board
+        # 10x10 battle board {key:value}
         self._board = {"Row": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
                        "Col": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]}
 
@@ -50,6 +50,9 @@ class ShipGame:
         self._battleships = {"first": [], "second": []}
         self._num_ships = {"first": 0, "second": 0}
 
+        # initialize game setup
+        self._current_state = "UNFINISHED"
+        self._current_turn = "first"
 
     def place_ship(self, player_str, ship_length, coord_str, orient_str):
         """
@@ -119,16 +122,16 @@ class ShipGame:
         # append new ship to battleship list
         self._battleships[player_str].append(temp_ship)
         # update number of ships
-        self._num_ships[player_str] = self.get_num_ships_remaining(player_str)
+        self._num_ships[player_str] = len(self._battleships[player_str])
         return True
 
     def get_current_state(self):
         """
         fetch and return the current_state value
         """
-        pass
+        return self._current_state
 
-    def set_current_state(self):
+    def set_current_state(self, player_str):
         """
         function as a gatekeeper whether to continue the game.
 
@@ -140,46 +143,89 @@ class ShipGame:
 
         If neither has zero ships remaining, then the game proceeds as 'UNFINISHED'.
         """
-        pass
+        # player_str is the loser, so the other player is the winner
+        if player_str == "first":
+            self._current_state = "SECOND_WON"
+        else:
+            self._current_state = "FIRST_WON"
 
     def get_current_turn(self):
         """
         fetch and return current_turn value
         """
-        pass
+        return self._current_turn
 
-    def set_current_turn(self):
+    def set_current_turn(self, player_str):
         """
         switch current_turn to the other player after each fire_torpedo() gets called
         """
-        pass
+        if player_str == "first":
+            self._current_turn = "second"
+
+        else:
+            self._current_turn = "first"
 
     def fire_torpedo(self, player_str, coord_str):
         """
         attack the specified coordinate on the opponent's grid.
 
         Before firing a torpedo, two checks need to be in place:
-        1) check whether the current_turn matches with player_str.
-        2) check whether the current_state is 'UNFINISHED'.
+        1) check whether the current_state is 'UNFINISHED'.
+        2) check whether the current_turn matches with player_str.
 
-        If 1 or 2, or both is FALSE, then nothing happens.
+        If 1 or 2, or both is FALSE, then nothing happens and return False.
         If 1 and 2 are both TRUE, check the attached coordinate on the opponent's grid.
         1) 'miss'
         2) 'hit'
 
-        If it's a 'miss', just switch current_turn.
-        If it's a 'hit', switch turn, check remaining ships, and update current state.
+        regardless of 'hit' or 'miss', switch current_turn.
+
+        If it's a 'hit', update remaining ships and current state, then return True.
+        If it's a 'miss', just return True.
         """
-        pass
+        # [validation]
+        # if game is already won by a player, return False
+        if self._current_state != "UNFINISHED":
+            return False
+        # if player_str is neither "first" nor "second", return False
+        if player_str != "first" and player_str != "second":
+            return False
+        # if it's not player_str's turn, return False
+        if self._current_turn != player_str:
+            return False
+
+        # [switch turn]
+        self.set_current_turn(player_str)
+
+        # [out of grid]
+        # parse coord_str into row and col
+        row = coord_str[0]
+        col = coord_str[1:]
+
+        # check whether the torpedo is out of grid
+        if row not in self._board["Row"] or col not in self._board["Col"]:
+            # wasted shot
+            return True
+
+        # [impact]
+        # check for hit
+        for ship in self._battleships[self._current_turn]:
+            # if there is a hit, call set_num_ships_remaining()
+            if coord_str in ship:
+                ship_num = self._battleships[self._current_turn].index(ship)
+                part_num = self._battleships[self._current_turn][ship_num].index(coord_str)
+                self.set_num_ships_remaining(self._current_turn, ship_num, part_num)
+
+        # return True, regardless of hit or miss
+        return True
 
     def get_num_ships_remaining(self, player_str):
         """
         Return number of ships remaining for 'player_str'(either 'first' or 'second').
         """
-        # use len to count remaining battleships
-        return len(self._battleships[player_str])
+        return self._num_ships[player_str]
 
-    def set_num_ships_remaining(self, player_str, coord_str):
+    def set_num_ships_remaining(self, player_str, ship_num, part_num):
         """
         update number of ships remaining after reflecting the torpedo 'hit'.
 
@@ -194,12 +240,54 @@ class ShipGame:
         If the number of remaining ships is not zero, then return nothing.
         If the number is zero, call set_current_state() to end the game with a winner.
         """
+        # identify the player_str's hit ship
+        hit_ship = self._battleships[player_str][ship_num]
+
+        # delete part of hit ship from battleships list
+        del hit_ship[part_num]
+
+        # if the hit ship has just sunk, remove the ship
+        if len(hit_ship) == 0:
+            del self._battleships[player_str][ship_num]
+            # update number of ships
+            self._num_ships[player_str] = len(self._battleships[player_str])
+
+            # if self._num_ships of player_str == 0:
+            if self._num_ships[player_str] == 0:
+                # self.set_current_state(player_str) <- loser
+                self.set_current_state(player_str)
+
+        # no change to num_ships_remaining
 
 
 def main():
     """ test cases that run only within this ShipGame.py module """
     # create ShipGame object
     sg = ShipGame()
+
+    sg.place_ship('first', 5, 'B2', 'C')
+    sg.place_ship('first', 2, 'I8', 'R')
+    sg.place_ship('first', 8, 'H2', 'R')
+
+    sg.place_ship('second', 3, 'H2', 'C')
+    sg.place_ship('second', 2, 'A1', 'C')
+
+    sg.fire_torpedo('second', 'A10')            # False
+    sg.fire_torpedo('first', 'D2')              # miss
+    sg.fire_torpedo('first', 'A2')              # False
+    sg.fire_torpedo('second', 'I9')             # hit
+    sg.fire_torpedo('first', 'X10')             # out and wasted
+    sg.fire_torpedo('second', 'G15')            # out and wasted
+    sg.fire_torpedo('first', 'B1')              # hit
+    sg.fire_torpedo('second', 'I8')             # hit and sink 2:2
+    sg.fire_torpedo('first', 'A1')              # hit and sink 2:1
+    sg.fire_torpedo('second', 'I8')             # repeat and wasted
+    sg.fire_torpedo('first', 'H2')              # hit
+    sg.fire_torpedo('second', 'B7')             # miss
+    sg.fire_torpedo('first', 'I2')              # hit
+    sg.fire_torpedo('second', 'H4')             # hit
+    sg.fire_torpedo('first', 'J2')              # hit and sink 2:0
+    sg.fire_torpedo('second', 'E2')             # game over, FIRST_WON
 
 
 if __name__ == '__main__':
